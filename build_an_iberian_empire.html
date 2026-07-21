@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Build an Iberian Empire</title>
+  <style>
+    :root{
+      --bg:#f4f0e6; --panel:#ffffff; --text:#1c2430; --muted:#5f6b78;
+      --border:#c8c2b8; --accent:#274f7f; --accent2:#e7b84b;
+      --good:#e8f4ea; --bad:#f8e7e7;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Arial, Helvetica, sans-serif; color:var(--text);
+      background:linear-gradient(180deg,#e8edf4 0,#f4f0e6 280px);
+    }
+    main{max-width:960px;margin:0 auto;padding:24px}
+    h1{margin:0 0 8px;font-size:clamp(2rem,5vw,3.5rem)}
+    h2,h3{margin-top:0}
+    .subtitle{color:var(--muted);margin:0 0 22px}
+    .panel{
+      background:var(--panel); border:1px solid var(--border); border-radius:18px;
+      padding:20px; box-shadow:0 8px 26px rgba(20,33,50,.08);
+    }
+    .hidden{display:none!important}
+    .grid{display:grid;gap:16px}
+    .country-grid{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+    .stats{grid-template-columns:repeat(4,1fr);margin-bottom:16px}
+    .stat{background:#f7f8fa;border:1px solid var(--border);border-radius:14px;padding:12px;text-align:center}
+    .stat strong{display:block;font-size:1.7rem}
+    button{
+      font:inherit; cursor:pointer; border:1px solid var(--border); border-radius:14px;
+      background:white; color:var(--text); padding:16px; text-align:left;
+    }
+    button:hover:not(:disabled),button:focus-visible:not(:disabled){outline:3px solid rgba(39,79,127,.2);border-color:var(--accent)}
+    button:disabled{opacity:.45;cursor:not-allowed}
+    .country{min-height:180px}
+    .country h2{font-size:1.8rem;color:var(--accent)}
+    .tag{display:inline-block;background:#eef3f8;border-radius:999px;padding:5px 9px;margin:3px 4px 3px 0;font-size:.9rem}
+    .topbar{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:15px}
+    .badge{background:var(--accent);color:white;border-radius:999px;padding:7px 12px;font-weight:bold}
+    .choice-grid{grid-template-columns:repeat(auto-fit,minmax(250px,1fr));margin-top:16px}
+    .choice strong{display:block;font-size:1.1rem;margin-bottom:7px}
+    .cost{color:var(--muted);font-size:.92rem}
+    .result{margin-top:16px;padding:16px;border-radius:14px;background:#eef3f8;border-left:6px solid var(--accent)}
+    .primary{background:var(--accent);color:white;text-align:center;border-color:var(--accent);width:100%;margin-top:14px;font-weight:bold}
+    .secondary{padding:10px 13px}
+    .debrief{background:#fff8df;border-left:6px solid var(--accent2);padding:16px;border-radius:12px;margin-top:16px}
+    .history{margin-top:14px;padding-left:20px}
+    .history li{margin-bottom:7px}
+    @media(max-width:650px){.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Build an Iberian Empire</h1>
+    <p class="subtitle">A historical decision simulation about Portugal and Spain in the Age of Exploration.</p>
+  </header>
+
+  <section id="start" class="panel">
+    <h2>Choose Your Kingdom</h2>
+    <p>Your goal is to build wealth and influence without bankrupting or overextending your kingdom.</p>
+    <div class="grid country-grid">
+      <button class="country" data-country="portugal">
+        <h2>Portugal</h2>
+        <span class="tag">Small population</span><span class="tag">Excellent navy</span><span class="tag">Limited treasury</span>
+        <p>Best suited for exploration, trade routes, and coastal forts.</p>
+      </button>
+      <button class="country" data-country="spain">
+        <h2>Spain</h2>
+        <span class="tag">Larger population</span><span class="tag">Excellent army</span><span class="tag">Larger treasury</span>
+        <p>Best suited for conquest, settlement, and territorial control.</p>
+      </button>
+    </div>
+  </section>
+
+  <section id="game" class="panel hidden">
+    <div class="topbar">
+      <div><span id="countryBadge" class="badge"></span><div id="turnLabel" class="subtitle" style="margin:8px 0 0"></div></div>
+      <button id="restart" class="secondary">Restart</button>
+    </div>
+    <div class="grid stats">
+      <div class="stat">Treasury<strong id="money">0</strong></div>
+      <div class="stat">Wealth<strong id="wealth">0</strong></div>
+      <div class="stat">Military<strong id="military">0</strong></div>
+      <div class="stat">Prestige<strong id="prestige">0</strong></div>
+    </div>
+    <h2 id="eventTitle"></h2>
+    <p id="eventText"></p>
+    <div id="choices" class="grid choice-grid"></div>
+    <div id="result" class="result hidden" aria-live="polite"></div>
+    <button id="continue" class="primary hidden">Continue</button>
+    <ol id="history" class="history"></ol>
+  </section>
+
+  <section id="end" class="panel hidden">
+    <h2 id="endingTitle"></h2>
+    <p id="endingText"></p>
+    <div class="grid stats">
+      <div class="stat">Final Treasury<strong id="endMoney"></strong></div>
+      <div class="stat">Final Wealth<strong id="endWealth"></strong></div>
+      <div class="stat">Military<strong id="endMilitary"></strong></div>
+      <div class="stat">Prestige<strong id="endPrestige"></strong></div>
+    </div>
+    <div class="debrief">
+      <h3>Debrief</h3>
+      <p><strong>1.</strong> How did your kingdom's strengths and limits shape the empire you built?</p>
+      <p><strong>2.</strong> Could Portugal realistically have built Spain's empire? Could Spain have copied Portugal's strategy?</p>
+      <p><strong>3.</strong> Which choices created the most wealth, and what costs came with them?</p>
+    </div>
+    <button id="playAgain" class="primary">Play the Other Kingdom</button>
+  </section>
+</main>
+
+<script>
+const data = {
+  portugal: {
+    name:"Portugal", money:20, wealth:0, military:4, prestige:2,
+    events:[
+      {title:"1415: Where should Portugal invest first?",text:"Your kingdom is small, but your Atlantic ports and sailors are strong.",choices:[
+        {label:"Fund new ships and navigation",cost:4,effects:{wealth:1,prestige:3},result:"Portuguese sailors improve their ability to travel farther along Africa."},
+        {label:"Expand the army for land conquest",cost:8,effects:{military:2,prestige:1},result:"The army grows, but Portugal has few nearby lands it can realistically conquer."}
+      ]},
+      {title:"Sailors reach unfamiliar waters.",text:"Do you continue exploring or protect what you already have?",choices:[
+        {label:"Explore farther down Africa",cost:4,effects:{wealth:2,prestige:3},result:"New geographic knowledge creates future trade opportunities."},
+        {label:"Build a coastal fort",cost:4,effects:{military:2,wealth:1},result:"The fort protects Portuguese ships and merchants."}
+      ]},
+      {title:"West African trade offers gold and other goods.",text:"How will Portugal gain wealth?",choices:[
+        {label:"Build trading posts",cost:2,effects:{wealth:5,prestige:1},result:"Cheap trading posts connect Portugal to valuable commerce."},
+        {label:"Attempt to conquer a large inland kingdom",cost:8,effects:{military:-2,wealth:3,prestige:-1},result:"Distance, population, and supply problems make conquest costly."}
+      ]},
+      {title:"A route around Africa may lead to India.",text:"The voyage is expensive and risky.",choices:[
+        {label:"Fund the voyage to India",cost:6,effects:{wealth:7,prestige:4},result:"Portugal reaches Indian Ocean markets and gains access to spices."},
+        {label:"Stay in West Africa",cost:2,effects:{wealth:3,prestige:0},result:"Trade remains profitable, but Portugal misses a larger opportunity."}
+      ]},
+      {title:"Your trade network is becoming difficult to protect.",text:"What kind of empire will Portugal maintain?",choices:[
+        {label:"Fortify key ports and sea routes",cost:4,effects:{military:2,wealth:4,prestige:2},result:"Portugal builds a durable trade-post empire."},
+        {label:"Settle and rule vast inland colonies",cost:10,effects:{military:-3,wealth:2,prestige:1},result:"Portugal lacks the population and soldiers to hold enormous territories."}
+      ]}
+    ]
+  },
+  spain: {
+    name:"Spain", money:40, wealth:0, military:8, prestige:3,
+    events:[
+      {title:"1492: Columbus requests royal support.",text:"His western route is expensive and uncertain.",choices:[
+        {label:"Fund Columbus",cost:6,effects:{prestige:3,wealth:1},result:"Spain gains access to lands across the Atlantic."},
+        {label:"Reject the voyage and strengthen Mediterranean trade",cost:3,effects:{wealth:2,prestige:-2},result:"Spain saves money but loses a major overseas opportunity."}
+      ]},
+      {title:"Reports describe large civilizations in the Americas.",text:"How should Spain respond?",choices:[
+        {label:"Send conquistadors",cost:6,effects:{military:2,wealth:6,prestige:3},result:"Military conquest promises land, labor, and wealth."},
+        {label:"Build trading posts only",cost:4,effects:{wealth:4,prestige:1},result:"Trade produces wealth, but Spain leaves territorial power unused."}
+      ]},
+      {title:"Conquered territory is difficult to govern.",text:"What should Spain build next?",choices:[
+        {label:"Settle colonies and create colonial governments",cost:8,effects:{wealth:5,prestige:4,military:1},result:"Spain establishes long-term territorial control."},
+        {label:"Take the treasure and leave",cost:2,effects:{wealth:4,prestige:-2},result:"Spain gains quick wealth but weakens its control."}
+      ]},
+      {title:"Mines and plantations require workers.",text:"Your advisers propose two paths.",choices:[
+        {label:"Use coerced labor systems",cost:2,effects:{wealth:7,prestige:-3},result:"Wealth rises sharply, but the human cost is severe."},
+        {label:"Rely on paid labor and smaller settlements",cost:7,effects:{wealth:3,prestige:2},result:"Growth is slower but less dependent on coercion."}
+      ]},
+      {title:"Spain now controls a vast overseas empire.",text:"How should the crown protect it?",choices:[
+        {label:"Build forts, fleets, and colonial armies",cost:8,effects:{military:3,wealth:3,prestige:3},result:"Spain strengthens its territorial empire."},
+        {label:"Focus only on trade routes",cost:4,effects:{wealth:4,prestige:0},result:"Trade grows, but Spain's large colonies remain harder to defend."}
+      ]}
+    ]
+  }
+};
+
+let state=null, turn=0, selectedCountry=null;
+const start=document.getElementById("start"), game=document.getElementById("game"), end=document.getElementById("end");
+const choices=document.getElementById("choices"), result=document.getElementById("result"), cont=document.getElementById("continue");
+const history=document.getElementById("history");
+
+function updateStats(){
+  ["money","wealth","military","prestige"].forEach(k=>document.getElementById(k).textContent=state[k]);
+}
+function startGame(country){
+  selectedCountry=country; const b=data[country];
+  state={money:b.money,wealth:b.wealth,military:b.military,prestige:b.prestige};
+  turn=0; history.innerHTML="";
+  start.classList.add("hidden"); end.classList.add("hidden"); game.classList.remove("hidden");
+  document.getElementById("countryBadge").textContent=b.name; renderTurn();
+}
+function renderTurn(){
+  updateStats(); result.classList.add("hidden"); cont.classList.add("hidden"); choices.innerHTML="";
+  const e=data[selectedCountry].events[turn];
+  document.getElementById("turnLabel").textContent=`Decision ${turn+1} of ${data[selectedCountry].events.length}`;
+  document.getElementById("eventTitle").textContent=e.title; document.getElementById("eventText").textContent=e.text;
+  e.choices.forEach(c=>{
+    const b=document.createElement("button"); b.className="choice"; b.disabled=state.money<c.cost;
+    b.innerHTML=`<strong>${c.label}</strong><span class="cost">Cost: ${c.cost}${b.disabled?" — Not enough treasury":""}</span>`;
+    b.addEventListener("click",()=>applyChoice(c)); choices.appendChild(b);
+  });
+}
+function applyChoice(c){
+  state.money-=c.cost; Object.entries(c.effects).forEach(([k,v])=>state[k]+=v); updateStats();
+  choices.querySelectorAll("button").forEach(b=>b.disabled=true);
+  result.innerHTML=`<strong>Consequence:</strong> ${c.result}`; result.classList.remove("hidden"); cont.classList.remove("hidden");
+  const li=document.createElement("li"); li.textContent=`${c.label}: ${c.result}`; history.appendChild(li);
+}
+function nextTurn(){turn++; turn>=data[selectedCountry].events.length?endGame():renderTurn();}
+function endGame(){
+  game.classList.add("hidden"); end.classList.remove("hidden");
+  const score=state.wealth+state.prestige+Math.max(state.money,0); const name=data[selectedCountry].name;
+  let title,desc;
+  if(score>=28){
+    title=`${name}: A Powerful Maritime Empire`;
+    desc=selectedCountry==="portugal"?
+      "You used navigation, trading posts, and fortified ports to build wealth without controlling vast inland territories.":
+      "You used conquest, settlement, and colonial government to create a wealthy territorial empire.";
+  }else if(score>=20){
+    title=`${name}: A Successful but Limited Empire`;
+    desc="Your empire gained wealth, but some choices did not fit your kingdom's strongest advantages.";
+  }else{
+    title=`${name}: An Overextended Kingdom`;
+    desc="Your ambitions exceeded your resources. Historical empires had to make difficult choices about distance, population, military power, and money.";
+  }
+  document.getElementById("endingTitle").textContent=title; document.getElementById("endingText").textContent=desc;
+  ["money","wealth","military","prestige"].forEach(k=>document.getElementById("end"+k[0].toUpperCase()+k.slice(1)).textContent=state[k]);
+}
+document.querySelectorAll("[data-country]").forEach(b=>b.addEventListener("click",()=>startGame(b.dataset.country)));
+cont.addEventListener("click",nextTurn);
+document.getElementById("restart").addEventListener("click",()=>{game.classList.add("hidden");end.classList.add("hidden");start.classList.remove("hidden")});
+document.getElementById("playAgain").addEventListener("click",()=>startGame(selectedCountry==="portugal"?"spain":"portugal"));
+</script>
+</body>
+</html>
